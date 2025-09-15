@@ -6,20 +6,21 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '')
 
   return {
-    base: '/entalk/', // GitHub Pages のサブパス
+    // ★ リポジトリ名に合わせる（必須）
+    base: '/ntalk/',
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
     resolve: {
-     alias: {
-  '@': path.resolve(__dirname, 'src'),
-},
-
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
     },
+    // ★ Pages で使える出力先にする
     build: {
-      outDir: 'dist',
+      outDir: 'docs',
       emptyOutDir: true,
     },
   }
