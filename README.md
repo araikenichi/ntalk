@@ -1,13 +1,13 @@
 # ntalk
 
-ntalk is a simple social networking app (SNS) for communication and media sharing.
+`ntalk` is a simple social networking app (SNS) for chatting, sharing media, and connecting with others.
 
 ## Features
 
-- Realtime chat
+- Real-time chat
 - User authentication
 - Media sharing
-- Clean UI
+- Clean and modern UI
 
 ## Getting Started
 
@@ -15,6 +15,10 @@ ntalk is a simple social networking app (SNS) for communication and media sharin
 # Install dependencies
 npm install
 
-# Run development server
+# Start development server
 npm run dev
+
+
+
+
 
