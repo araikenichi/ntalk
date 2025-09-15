@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Post, Comment, PostType, User } from '../src/types';
-import { geminiService } from '../services/geminiService';
 import CommentItem from './CommentItem';
 import LikeAnimation from './LikeAnimation';
 import { useTranslation } from '../hooks/useTranslation';
