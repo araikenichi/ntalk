@@ -1,5 +1,5 @@
 // FIX: Defined ActiveView type directly to remove circular dependency.
-export type ActiveView = 'feed' | 'network' | 'messages' | 'search' | 'profile' | 'live-broadcaster' | 'me';
+export type ActiveView = 'feed' | 'network' | 'messages' | 'search' | 'profile' | 'live-broadcaster' | 'me' | 'shop' | 'product-detail' | 'cart' | 'orders' | 'user-shop';
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 export interface User {
@@ -102,4 +102,107 @@ export interface Opportunity {
     description: string;
     type: 'Full-time' | 'Contract' | 'Collaboration';
     tags: string[];
+}
+
+// E-commerce types
+export enum ProductCondition {
+    New = 'new',
+    LikeNew = 'like-new',
+    Used = 'used',
+}
+
+export enum ProductCategory {
+    Fashion = 'fashion',
+    Beauty = 'beauty',
+    Electronics = 'electronics',
+    Home = 'home',
+    Books = 'books',
+    Sports = 'sports',
+    Toys = 'toys',
+    Food = 'food',
+    Other = 'other',
+}
+
+export interface Product {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    originalPrice?: number;
+    currency: string;
+    images: string[];
+    seller: User;
+    category: ProductCategory;
+    condition: ProductCondition;
+    stock: number;
+    sold: number;
+    rating: number;
+    reviewCount: number;
+    location: string;
+    tags: string[];
+    createdAt: string;
+    isLiked?: boolean;
+    relatedPost?: string; // Post ID if product is linked to a post
+}
+
+export interface Review {
+    id: string;
+    productId: string;
+    user: User;
+    rating: number;
+    comment: string;
+    images?: string[];
+    createdAt: string;
+    likes: number;
+}
+
+export interface CartItem {
+    id: string;
+    product: Product;
+    quantity: number;
+    selectedAt: string;
+}
+
+export enum OrderStatus {
+    Pending = 'pending',
+    Paid = 'paid',
+    Shipped = 'shipped',
+    Delivered = 'delivered',
+    Cancelled = 'cancelled',
+    Refunded = 'refunded',
+}
+
+export interface Order {
+    id: string;
+    buyer: User;
+    items: {
+        product: Product;
+        quantity: number;
+        price: number;
+    }[];
+    totalAmount: number;
+    status: OrderStatus;
+    shippingAddress: {
+        name: string;
+        phone: string;
+        address: string;
+        city: string;
+        province: string;
+        postalCode: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+    trackingNumber?: string;
+}
+
+// Extended Post interface to support product tagging
+export interface PostWithProducts extends Post {
+    taggedProducts?: Product[];
+}
+
+// Shopping context for live streams
+export interface LiveProduct {
+    product: Product;
+    showcaseTime: string;
+    discount?: number;
 }

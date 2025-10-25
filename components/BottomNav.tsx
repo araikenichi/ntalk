@@ -1,5 +1,5 @@
 import React from 'react';
-import { HomeIcon, GroupIcon, MessagesIcon, PlusCircleIcon, UserIcon } from './Icons';
+import { HomeIcon, ShoppingBagIcon, MessagesIcon, PlusCircleIcon, UserIcon } from './Icons';
 import { ActiveView } from '../src/types';
 
 interface BottomNavProps {
@@ -32,7 +32,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onShowPos
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 flex justify-around z-50">
       <NavItem label="Home" icon={<HomeIcon />} isActive={activeView === 'feed'} onClick={() => onNavigate('feed')} iconSize="w-5 h-5" />
-      <NavItem label="Network" icon={<GroupIcon />} isActive={activeView === 'network'} onClick={() => onNavigate('network')} iconSize="w-5 h-5" />
+      <NavItem label="Shop" icon={<ShoppingBagIcon />} isActive={activeView === 'shop' || activeView === 'cart' || activeView === 'orders'} onClick={() => onNavigate('shop')} iconSize="w-5 h-5" />
       <NavItem label="Post" icon={<PlusCircleIcon />} isActive={false} onClick={() => {
         console.log('Post button clicked!');
         onShowPostCreator?.();

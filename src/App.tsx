@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { mockPosts, users as initialUsers, mockCommunities, mockOpportunities } from './constants';
-import { Post, PostType, Media, User } from './types';
+import { mockPosts, users as initialUsers, mockCommunities, mockOpportunities, mockProducts, mockReviews } from './constants';
+import { Post, PostType, Media, User, Product, CartItem, Order, OrderStatus } from './types';
 import type { ActiveView } from './types';
 import Feed from './views/Feed';
 import Network from './views/Network';
@@ -8,6 +8,10 @@ import Messages from './views/Messages';
 import Search from './views/Search';
 import Profile from './views/Profile';
 import Me from './views/Me';
+import { Shop } from './views/Shop';
+import { ProductDetail } from './views/ProductDetail';
+import { Cart } from './views/Cart';
+import { Orders } from './views/Orders';
 import BottomNav from '../components/BottomNav';
 import PostCreator from '../components/PostCreator';
 import LiveStreamSetupModal from '../components/LiveStreamSetupModal';
@@ -32,6 +36,12 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
   const [userProfile, setUserProfile] = useState<User>(currentUser);
   const [showGlobalPostCreator, setShowGlobalPostCreator] = useState(false);
   const currentUserId = userProfile.id;
+
+  // E-commerce states
+  const [products] = useState<Product[]>(mockProducts);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     if (activeView === 'profile') window.scrollTo(0, 0);
@@ -108,8 +118,136 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
 
   const handleBackToFeed = () => setActiveView('feed');
 
+  // E-commerce handlers
+  const handleProductClick = (productId: string) => {
+    setSelectedProductId(productId);
+    setActiveView('product-detail');
+  };
+
+  const handleProductLike = (productId: string) => {
+    console.log('Like product:', productId);
+    // In a real app, this would update the server
+  };
+
+  const handleAddToCart = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const existingItem = cartItems.find(item => item.product.id === productId);
+    if (existingItem) {
+      setCartItems(cartItems.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity: Math.min(item.quantity + 1, product.stock) }
+          : item
+      ));
+    } else {
+      const newItem: CartItem = {
+        id: `cart-${Date.now()}`,
+        product,
+        quantity: 1,
+        selectedAt: new Date().toISOString(),
+      };
+      setCartItems([...cartItems, newItem]);
+    }
+    console.log('Added to cart:', productId);
+  };
+
+  const handleBuyNow = (productId: string) => {
+    handleAddToCart(productId);
+    setActiveView('cart');
+  };
+
+  const handleUpdateCartQuantity = (itemId: string, quantity: number) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, quantity } : item
+    ));
+  };
+
+  const handleRemoveCartItem = (itemId: string) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+  };
+
+  const handleCheckout = (selectedItemIds: string[]) => {
+    const selectedItems = cartItems.filter(item => selectedItemIds.includes(item.id));
+    const newOrder: Order = {
+      id: `order-${Date.now()}`,
+      buyer: userProfile,
+      items: selectedItems.map(item => ({
+        product: item.product,
+        quantity: item.quantity,
+        price: item.product.price,
+      })),
+      totalAmount: selectedItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+      status: OrderStatus.Pending,
+      shippingAddress: {
+        name: userProfile.name,
+        phone: userProfile.phoneNumber || '',
+        address: '',
+        city: '',
+        province: '',
+        postalCode: '',
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setOrders([newOrder, ...orders]);
+    setCartItems(cartItems.filter(item => !selectedItemIds.includes(item.id)));
+    setActiveView('orders');
+    console.log('Checkout completed:', newOrder);
+  };
+
+  const handleContactSeller = (sellerId: string) => {
+    handleStartMessage(sellerId);
+  };
+
+  const handleBackFromProduct = () => {
+    setSelectedProductId(null);
+    setActiveView('shop');
+  };
+
   const renderView = () => {
     switch (activeView) {
+      case 'shop':
+        return (
+          <Shop
+            products={products}
+            onProductClick={handleProductClick}
+            onProductLike={handleProductLike}
+          />
+        );
+      case 'product-detail': {
+        const product = products.find(p => p.id === selectedProductId);
+        if (!product) return <div>Product not found</div>;
+        const productReviews = mockReviews.filter(r => r.productId === product.id);
+        return (
+          <ProductDetail
+            product={product}
+            reviews={productReviews}
+            onBack={handleBackFromProduct}
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
+            onContactSeller={handleContactSeller}
+            onViewUserProfile={handleViewProfile}
+          />
+        );
+      }
+      case 'cart':
+        return (
+          <Cart
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            onCheckout={handleCheckout}
+            onProductClick={handleProductClick}
+          />
+        );
+      case 'orders':
+        return (
+          <Orders
+            orders={orders}
+            onOrderClick={(orderId) => console.log('View order:', orderId)}
+          />
+        );
       case 'network':
         return (
           <Network
@@ -138,8 +276,8 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
         );
       case 'messages':
         return (
-           <Messages 
-             currentUser={userProfile} 
+           <Messages
+             currentUser={userProfile}
              onNavigateBack={() => {
                setMessageTargetUserId(null);
                handleBackToFeed();
@@ -211,7 +349,7 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
     return <LiveBroadcasterView post={liveStreamPost} onEndStream={handleEndLiveStream} />;
   }
 
-  const showBottomNav = activeView !== 'messages' && activeView !== 'live-broadcaster';
+  const showBottomNav = activeView !== 'messages' && activeView !== 'live-broadcaster' && activeView !== 'product-detail';
 
   return (
     <ErrorBoundary>
