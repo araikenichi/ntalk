@@ -27,6 +27,7 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [userProfile, setUserProfile] = useState<User>(currentUser);
   const [showPublishProduct, setShowPublishProduct] = useState(false);
+  const [likedProductIds, setLikedProductIds] = useState<string[]>([]);
 
   const currentUserId = userProfile.id;
 
@@ -179,6 +180,21 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
     // TODO: 实现订单详情页
   };
 
+  const handleToggleLike = (productId: string) => {
+    const isLiked = likedProductIds.includes(productId);
+    if (isLiked) {
+      setLikedProductIds(likedProductIds.filter(id => id !== productId));
+      setProducts(products.map(p =>
+        p.id === productId ? { ...p, likes: Math.max(0, p.likes - 1) } : p
+      ));
+    } else {
+      setLikedProductIds([...likedProductIds, productId]);
+      setProducts(products.map(p =>
+        p.id === productId ? { ...p, likes: p.likes + 1 } : p
+      ));
+    }
+  };
+
   const handleNavigate = (view: ActiveView) => {
     setViewingProductId(null);
     setActiveView(view);
@@ -241,6 +257,8 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onContactSeller={handleContactSeller}
+            onToggleLike={handleToggleLike}
+            isLiked={likedProductIds.includes(product.id)}
           />
         );
       }
@@ -293,6 +311,7 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
             activeView={activeView}
             onNavigate={handleNavigate}
             onShowPostCreator={() => setShowPublishProduct(true)}
+            cartItemCount={cartItems.length}
           />
         )}
       </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductStatus, User } from '../types';
+import ImageViewerModal from '../../components/ImageViewerModal';
 
 interface ProductDetailProps {
   product: Product;
@@ -8,6 +9,8 @@ interface ProductDetailProps {
   onAddToCart: (product: Product) => void;
   onBuyNow: (product: Product) => void;
   onContactSeller: (sellerId: string) => void;
+  onToggleLike: (productId: string) => void;
+  isLiked: boolean;
 }
 
 const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -17,8 +20,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   onAddToCart,
   onBuyNow,
   onContactSeller,
+  onToggleLike,
+  isLiked,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   const getConditionText = (condition: string) => {
     const map: Record<string, string> = {
@@ -47,18 +53,40 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">商品详情</h1>
+          <h1 className="flex-1 text-lg font-semibold text-gray-900 dark:text-gray-100">商品详情</h1>
+          {!isOwnProduct && (
+            <button
+              onClick={() => onToggleLike(product.id)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            >
+              <svg
+                className="w-6 h-6"
+                fill={isLiked ? "currentColor" : "none"}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  className={isLiked ? "text-red-600 dark:text-red-500" : ""}
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
       <div className="pb-24">
         {/* 图片轮播 */}
         <div className="bg-white dark:bg-gray-900 relative">
-          <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
+          <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden cursor-pointer">
             <img
               src={product.images[currentImageIndex]}
               alt={product.title}
               className="w-full h-full object-cover"
+              onClick={() => setShowImageViewer(true)}
             />
 
             {/* 图片指示器 */}
@@ -225,6 +253,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             {isSoldOut ? '已售出' : '立即购买'}
           </button>
         </div>
+      )}
+
+      {/* 图片查看器 */}
+      {showImageViewer && (
+        <ImageViewerModal
+          images={product.images}
+          currentIndex={currentImageIndex}
+          onClose={() => setShowImageViewer(false)}
+        />
       )}
     </div>
   );

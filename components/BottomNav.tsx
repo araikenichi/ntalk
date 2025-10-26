@@ -6,6 +6,7 @@ interface BottomNavProps {
   activeView: ActiveView;
   onNavigate: (view: ActiveView) => void;
   onShowPostCreator?: () => void;
+  cartItemCount?: number;
 }
 
 const NavItem: React.FC<{
@@ -28,7 +29,7 @@ const NavItem: React.FC<{
   </button>
 );
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onShowPostCreator }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onShowPostCreator, cartItemCount = 0 }) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 flex justify-around z-50">
       <NavItem
@@ -38,17 +39,22 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onShowPos
         onClick={() => onNavigate('marketplace')}
         iconSize="w-5 h-5"
       />
-      <NavItem
-        label="购物车"
-        icon={
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        }
-        isActive={activeView === 'cart'}
+      <button
         onClick={() => onNavigate('cart')}
-        iconSize="w-5 h-5"
-      />
+        className={`flex flex-col items-center justify-center w-full py-1 transition-colors duration-200 relative ${
+          activeView === 'cart' ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400 hover:text-blue-500'
+        }`}
+        aria-label="购物车"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        {cartItemCount > 0 && (
+          <span className="absolute top-0 right-[calc(50%-0.75rem)] bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+            {cartItemCount > 99 ? '99+' : cartItemCount}
+          </span>
+        )}
+      </button>
       <NavItem
         label="发布"
         icon={<PlusCircleIcon />}
