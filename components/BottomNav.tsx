@@ -31,14 +31,52 @@ const NavItem: React.FC<{
 const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onShowPostCreator }) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 flex justify-around z-50">
-      <NavItem label="Home" icon={<HomeIcon />} isActive={activeView === 'feed'} onClick={() => onNavigate('feed')} iconSize="w-5 h-5" />
-      <NavItem label="Network" icon={<GroupIcon />} isActive={activeView === 'network'} onClick={() => onNavigate('network')} iconSize="w-5 h-5" />
-      <NavItem label="Post" icon={<PlusCircleIcon />} isActive={false} onClick={() => {
-        console.log('Post button clicked!');
-        onShowPostCreator?.();
-      }} iconSize="w-7 h-7" />
-      <NavItem label="Messages" icon={<MessagesIcon />} isActive={activeView === 'messages'} onClick={() => onNavigate('messages')} iconSize="w-5 h-5" />
-      <NavItem label="Me" icon={<UserIcon />} isActive={activeView === 'me'} onClick={() => onNavigate('me')} iconSize="w-5 h-5" />
+      <NavItem
+        label="市场"
+        icon={<HomeIcon />}
+        isActive={activeView === 'marketplace'}
+        onClick={() => onNavigate('marketplace')}
+        iconSize="w-5 h-5"
+      />
+      <NavItem
+        label="购物车"
+        icon={
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        }
+        isActive={activeView === 'cart'}
+        onClick={() => onNavigate('cart')}
+        iconSize="w-5 h-5"
+      />
+      <NavItem
+        label="发布"
+        icon={<PlusCircleIcon />}
+        isActive={false}
+        onClick={() => {
+          console.log('Post button clicked!');
+          onShowPostCreator?.();
+        }}
+        iconSize="w-7 h-7"
+      />
+      <NavItem
+        label="订单"
+        icon={
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        }
+        isActive={activeView === 'orders'}
+        onClick={() => onNavigate('orders')}
+        iconSize="w-5 h-5"
+      />
+      <NavItem
+        label="我的"
+        icon={<UserIcon />}
+        isActive={activeView === 'my-products'}
+        onClick={() => onNavigate('my-products')}
+        iconSize="w-5 h-5"
+      />
     </div>
   );
 };

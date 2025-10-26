@@ -1,259 +1,298 @@
 import React, { useState, useEffect } from 'react';
-import { mockPosts, users as initialUsers, mockCommunities, mockOpportunities } from './constants';
-import { Post, PostType, Media, User } from './types';
+import { mockProducts, mockOrders, users as initialUsers } from './constants';
+import { Product, ProductStatus, User, CartItem, Order, OrderStatus } from './types';
 import type { ActiveView } from './types';
-import Feed from './views/Feed';
-import Network from './views/Network';
-import Messages from './views/Messages';
-import Search from './views/Search';
-import Profile from './views/Profile';
+import Marketplace from './views/Marketplace';
+import Cart from './views/Cart';
+import Orders from './views/Orders';
+import MyProducts from './views/MyProducts';
+import ProductDetail from './views/ProductDetail';
 import Me from './views/Me';
 import BottomNav from '../components/BottomNav';
-import PostCreator from '../components/PostCreator';
-import LiveStreamSetupModal from '../components/LiveStreamSetupModal';
-import LiveBroadcasterView from './views/LiveBroadcasterView';
+import PublishProduct from '../components/PublishProduct';
 import { I18nProvider } from '../contexts/I18nContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 
-// 認証画面（props名に合わせて配線）
+// 认证画面
 import SignUp from './views/auth/SignUp';
 import Login from './views/auth/Login';
 import VerifyEmail from './views/auth/VerifyEmail';
 
-// ==================== MainApp（元コード） ====================
+// ==================== MainApp（电商应用） ====================
 const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ currentUser, onLogout }) => {
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
-  const [activeView, setActiveView] = useState<ActiveView>('feed');
-  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
-  const [messageTargetUserId, setMessageTargetUserId] = useState<string | null>(null);
-  const [isSettingUpLive, setIsSettingUpLive] = useState(false);
-  const [liveStreamPost, setLiveStreamPost] = useState<Post | null>(null);
-  const [followedUserIds, setFollowedUserIds] = useState<string[]>(['u1']);
+  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [activeView, setActiveView] = useState<ActiveView>('marketplace');
+  const [viewingProductId, setViewingProductId] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [userProfile, setUserProfile] = useState<User>(currentUser);
-  const [showGlobalPostCreator, setShowGlobalPostCreator] = useState(false);
+  const [showPublishProduct, setShowPublishProduct] = useState(false);
+
   const currentUserId = userProfile.id;
 
   useEffect(() => {
-    if (activeView === 'profile') window.scrollTo(0, 0);
-  }, [activeView, viewingProfileId]);
+    if (activeView === 'marketplace') window.scrollTo(0, 0);
+  }, [activeView]);
 
-  const handleUpdateProfile = (updatedData: Partial<User>) => setUserProfile(prev => ({ ...prev, ...updatedData }));
+  const handleUpdateProfile = (updatedData: Partial<User>) =>
+    setUserProfile(prev => ({ ...prev, ...updatedData }));
 
-  const handleAddPost = (postData: { content: string; type: PostType; media?: Media[] }) => {
-    const newPost: Post = {
-      id: `p${Date.now()}`,
-      user: userProfile,
-      ...postData,
+  // 商品相关操作
+  const handlePublishProduct = (productData: Partial<Product>) => {
+    const newProduct: Product = {
+      id: `prod${Date.now()}`,
+      title: productData.title!,
+      description: productData.description!,
+      price: productData.price!,
+      originalPrice: productData.originalPrice,
+      images: productData.images!,
+      category: productData.category!,
+      condition: productData.condition!,
+      status: ProductStatus.Available,
+      seller: userProfile,
+      location: productData.location!,
+      views: 0,
       likes: 0,
-      shares: 0,
-      comments: [],
-      createdAt: 'Just now',
+      createdAt: '刚刚',
+      shippingOptions: productData.shippingOptions,
+      tags: productData.tags,
     };
-    setPosts([newPost, ...posts]);
+    setProducts([newProduct, ...products]);
+    setShowPublishProduct(false);
+    alert('商品发布成功！');
   };
 
-  const handleUpdatePost = (postId: string, newContent: string) =>
-    setPosts(posts.map(p => (p.id === postId ? { ...p, content: newContent } : p)));
-
-  const handleDeletePost = (postId: string) => setPosts(posts.filter(p => p.id !== postId));
-
-  const handleStartLiveStreamSetup = () => setIsSettingUpLive(true);
-
-  const handleConfirmLiveStream = (description: string) => {
-    const newLivePost: Post = {
-      id: `p${Date.now()}`,
-      user: userProfile,
-      content: description,
-      type: PostType.Live,
-      media: [{ type: 'image', url: `https://picsum.photos/seed/live${Date.now()}/800/450` }],
-      likes: 0,
-      shares: 0,
-      comments: [],
-      createdAt: 'Now',
-      viewers: 1,
-    };
-    setPosts([newLivePost, ...posts]);
-    setLiveStreamPost(newLivePost);
-    setIsSettingUpLive(false);
-    setActiveView('live-broadcaster');
+  const handleEditProduct = (productId: string) => {
+    alert('编辑功能开发中...');
+    // TODO: 实现编辑功能
   };
 
-  const handleEndLiveStream = () => {
-    if (liveStreamPost) {
-      setPosts(posts.map(p => (p.id === liveStreamPost.id ? { ...p, type: PostType.Video, wasLive: true, viewers: undefined } : p)));
+  const handleDeleteProduct = (productId: string) => {
+    setProducts(products.filter(p => p.id !== productId));
+    alert('商品已删除');
+  };
+
+  const handleProductClick = (productId: string) => {
+    setViewingProductId(productId);
+    setActiveView('product-detail');
+  };
+
+  // 购物车相关操作
+  const handleAddToCart = (product: Product) => {
+    const existingItem = cartItems.find(item => item.product.id === product.id);
+    if (existingItem) {
+      setCartItems(cartItems.map(item =>
+        item.product.id === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      const newItem: CartItem = {
+        id: `cart${Date.now()}`,
+        product,
+        quantity: 1,
+        selected: true,
+      };
+      setCartItems([...cartItems, newItem]);
     }
-    setLiveStreamPost(null);
-    setActiveView('feed');
+    alert('已添加到购物车');
   };
 
-  const handleFollowToggle = (userId: string) =>
-    setFollowedUserIds(prev => (prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]));
-
-  const handleViewProfile = (userId: string) => {
-    setViewingProfileId(userId);
-    setActiveView('profile');
+  const handleBuyNow = (product: Product) => {
+    // 模拟直接购买
+    const newOrder: Order = {
+      id: `order${Date.now()}`,
+      orderNumber: `ORD${Date.now()}`,
+      buyer: userProfile,
+      seller: product.seller,
+      product,
+      quantity: 1,
+      totalPrice: product.price,
+      status: OrderStatus.Pending,
+      shippingAddress: userProfile.location,
+      shippingMethod: '快递',
+      createdAt: new Date().toLocaleDateString(),
+      updatedAt: new Date().toLocaleDateString(),
+      paymentMethod: '支付宝',
+    };
+    setOrders([newOrder, ...orders]);
+    alert('订单已创建，请前往订单页面付款');
+    setActiveView('orders');
   };
 
-  const handleStartMessage = (userId: string) => {
-    // 设置目标用户ID并导航到消息页面
-    setMessageTargetUserId(userId);
-    setActiveView('messages');
-    console.log('开始与用户', userId, '的私信对话');
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, quantity } : item
+    ));
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+  };
+
+  const handleToggleSelect = (itemId: string) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, selected: !item.selected } : item
+    ));
+  };
+
+  const handleCheckout = () => {
+    const selectedItems = cartItems.filter(item => item.selected);
+    if (selectedItems.length === 0) {
+      alert('请选择要结算的商品');
+      return;
+    }
+
+    // 为每个选中的商品创建订单
+    const newOrders = selectedItems.map(item => {
+      const order: Order = {
+        id: `order${Date.now()}_${item.id}`,
+        orderNumber: `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        buyer: userProfile,
+        seller: item.product.seller,
+        product: item.product,
+        quantity: item.quantity,
+        totalPrice: item.product.price * item.quantity,
+        status: OrderStatus.Pending,
+        shippingAddress: userProfile.location,
+        shippingMethod: '快递',
+        createdAt: new Date().toLocaleDateString(),
+        updatedAt: new Date().toLocaleDateString(),
+        paymentMethod: '支付宝',
+      };
+      return order;
+    });
+
+    setOrders([...newOrders, ...orders]);
+    setCartItems(cartItems.filter(item => !item.selected));
+    alert('订单已创建，请前往订单页面付款');
+    setActiveView('orders');
+  };
+
+  const handleContactSeller = (sellerId: string) => {
+    alert('联系卖家功能开发中...');
+    // TODO: 实现联系卖家功能
+  };
+
+  const handleOrderClick = (orderId: string) => {
+    alert('查看订单详情功能开发中...');
+    // TODO: 实现订单详情页
   };
 
   const handleNavigate = (view: ActiveView) => {
-    setViewingProfileId(null);
+    setViewingProductId(null);
     setActiveView(view);
   };
 
-  const handleBackToFeed = () => setActiveView('feed');
+  const handleBackToMarketplace = () => setActiveView('marketplace');
 
   const renderView = () => {
     switch (activeView) {
-      case 'network':
+      case 'marketplace':
         return (
-          <Network
+          <Marketplace
+            products={products}
             currentUser={userProfile}
-            currentUserId={currentUserId}
-            followedUserIds={followedUserIds}
-            onFollowToggle={handleFollowToggle}
-            onViewProfile={handleViewProfile}
+            onProductClick={handleProductClick}
+            onPublishProduct={() => setShowPublishProduct(true)}
           />
         );
-      case 'search':
+      case 'cart':
         return (
-          <Search
-            posts={posts}
-            users={Object.values(initialUsers)}
-            communities={mockCommunities}
-            opportunities={mockOpportunities}
+          <Cart
+            cartItems={cartItems}
             currentUser={userProfile}
-            currentUserId={currentUserId}
-            followedUserIds={followedUserIds}
-            onFollowToggle={handleFollowToggle}
-            onViewProfile={handleViewProfile}
-            onUpdatePost={handleUpdatePost}
-            onDeletePost={handleDeletePost}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onToggleSelect={handleToggleSelect}
+            onCheckout={handleCheckout}
           />
         );
-      case 'messages':
+      case 'orders':
         return (
-           <Messages 
-             currentUser={userProfile} 
-             onNavigateBack={() => {
-               setMessageTargetUserId(null);
-               handleBackToFeed();
-             }}
-             targetUserId={messageTargetUserId}
-             onViewProfile={handleViewProfile}
-           />
-         );
+          <Orders
+            orders={orders}
+            currentUser={userProfile}
+            onOrderClick={handleOrderClick}
+          />
+        );
+      case 'my-products':
+        return (
+          <MyProducts
+            products={products}
+            currentUser={userProfile}
+            onProductClick={handleProductClick}
+            onPublishProduct={() => setShowPublishProduct(true)}
+            onEditProduct={handleEditProduct}
+            onDeleteProduct={handleDeleteProduct}
+          />
+        );
+      case 'product-detail': {
+        const product = products.find(p => p.id === viewingProductId);
+        if (!product) {
+          setActiveView('marketplace');
+          return null;
+        }
+        return (
+          <ProductDetail
+            product={product}
+            currentUser={userProfile}
+            onBack={handleBackToMarketplace}
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
+            onContactSeller={handleContactSeller}
+          />
+        );
+      }
       case 'me':
         return (
           <Me
             currentUser={userProfile}
-            posts={posts}
+            posts={[]}
             currentUserId={currentUserId}
-            followedUserIds={followedUserIds}
-            onFollowToggle={handleFollowToggle}
-            onViewProfile={handleViewProfile}
-            onBack={handleBackToFeed}
+            followedUserIds={[]}
+            onFollowToggle={() => {}}
+            onViewProfile={() => {}}
+            onBack={handleBackToMarketplace}
             onUpdateProfile={handleUpdateProfile}
             onLogout={onLogout}
-            onStartMessage={handleStartMessage}
+            onStartMessage={() => {}}
           />
         );
-      case 'profile': {
-        let userToShow = userProfile;
-        if (viewingProfileId && viewingProfileId !== currentUserId) {
-          // 根据用户ID查找对应的用户
-          const foundUser = Object.values(initialUsers).find(user => user.id === viewingProfileId);
-          userToShow = foundUser || userProfile;
-        }
-
-        return (
-          <Profile
-            user={userToShow}
-            currentUser={userProfile}
-            posts={posts}
-            currentUserId={currentUserId}
-            followedUserIds={followedUserIds}
-            onFollowToggle={handleFollowToggle}
-            onViewProfile={handleViewProfile}
-            onBack={handleBackToFeed}
-            onUpdateProfile={handleUpdateProfile}
-            onLogout={onLogout}
-            onStartMessage={handleStartMessage}
-          />
-        );
-      }
-      case 'feed':
       default:
         return (
-          <Feed
-            posts={posts}
+          <Marketplace
+            products={products}
             currentUser={userProfile}
-            onStartLiveStream={handleStartLiveStreamSetup}
-            onAddPost={handleAddPost}
-            onUpdatePost={handleUpdatePost}
-            onDeletePost={handleDeletePost}
-            currentUserId={currentUserId}
-            followedUserIds={followedUserIds}
-            onFollowToggle={handleFollowToggle}
-            onViewProfile={handleViewProfile}
-            onNavigateToSearch={() => setActiveView('search')}
+            onProductClick={handleProductClick}
+            onPublishProduct={() => setShowPublishProduct(true)}
           />
         );
     }
   };
 
-  if (activeView === 'live-broadcaster' && liveStreamPost) {
-    return <LiveBroadcasterView post={liveStreamPost} onEndStream={handleEndLiveStream} />;
-  }
-
-  const showBottomNav = activeView !== 'messages' && activeView !== 'live-broadcaster';
+  const showBottomNav = activeView !== 'product-detail';
 
   return (
     <ErrorBoundary>
       <div className="bg-white dark:bg-black min-h-screen text-gray-900 dark:text-gray-100">
         <main className={showBottomNav ? 'pb-[69px]' : ''}>{renderView()}</main>
 
-        {isSettingUpLive && (
-          <LiveStreamSetupModal onConfirm={handleConfirmLiveStream} onCancel={() => setIsSettingUpLive(false)} />
+        {/* 发布商品弹窗 */}
+        {showPublishProduct && (
+          <PublishProduct
+            currentUser={userProfile}
+            onPublish={handlePublishProduct}
+            onCancel={() => setShowPublishProduct(false)}
+          />
         )}
 
-        {/* Global Post Creator */}
-        {showGlobalPostCreator && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 z-[9999] flex items-center justify-center p-4 animate-fadeIn">
-            <div className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-all duration-300 ease-out animate-slideUp">
-              <div className="absolute top-4 right-4 z-10">
-                <button 
-                  onClick={() => setShowGlobalPostCreator(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl font-bold bg-white dark:bg-gray-800 rounded-full w-8 h-8 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
-                >
-                  ✕
-                </button>
-              </div>
-              <PostCreator 
-                currentUser={userProfile} 
-                onStartLiveStream={handleStartLiveStreamSetup} 
-                onAddPost={(postData) => {
-                  handleAddPost(postData);
-                  setShowGlobalPostCreator(false);
-                }} 
-              />
-            </div>
-          </div>
-        )}
-
+        {/* 底部导航 */}
         {showBottomNav && (
-          <BottomNav 
-            activeView={activeView} 
-            onNavigate={handleNavigate} 
-            onShowPostCreator={() => {
-              console.log('Toggling post creator, current state:', showGlobalPostCreator);
-              setShowGlobalPostCreator(!showGlobalPostCreator);
-            }}
+          <BottomNav
+            activeView={activeView}
+            onNavigate={handleNavigate}
+            onShowPostCreator={() => setShowPublishProduct(true)}
           />
         )}
       </div>
@@ -261,7 +300,7 @@ const MainApp: React.FC<{ currentUser: User; onLogout: () => void }> = ({ curren
   );
 };
 
-// ==================== 認証ラッパー（自動ログイン） ====================
+// ==================== 认证包装器 ====================
 type AuthStage = 'signup' | 'login' | 'verify' | 'app';
 
 const mockUser = (): User => ({
@@ -272,7 +311,7 @@ const mockUser = (): User => ({
   bio: 'AI enthusiast and social tech lover.',
   coverImage: '',
   jobTitle: '',
-  location: '',
+  location: '上海 浦东新区',
   email: 'li.wei@example.com',
   tags: [],
   followingCount: 0,
@@ -336,7 +375,7 @@ const App: React.FC = () => {
           <VerifyEmail user={user ?? mockUser()} onContinue={() => setStage('app')} />
           <div className="p-4 text-center">
             <button onClick={() => setStage('login')} className="mt-4 px-4 py-2 rounded-lg border">
-              ログインへ
+              返回登录
             </button>
           </div>
         </div>
