@@ -4,6 +4,7 @@ import { Conversation, DirectMessage, User } from '../types';
 import { ChevronLeftIcon, SearchIcon, SendIcon, ImageIcon, VideoIcon, XCircleIcon, PlayIcon } from '../../components/Icons';
 import { format } from 'date-fns';
 import { useTranslation } from '../../hooks/useTranslation';
+import { translationService } from '../../services/translationService';
 
 interface MessagesProps {
   currentUser: User;
@@ -73,13 +74,109 @@ const ConversationListItem: React.FC<{
   );
 };
 
+const MessageBubble: React.FC<{
+  message: DirectMessage;
+  isOwnMessage: boolean;
+  otherUserAvatar: string;
+  currentUserAvatar: string;
+  onTranslate: (messageId: string) => void;
+  onCorrect: (messageId: string) => void;
+}> = ({ message, isOwnMessage, otherUserAvatar, currentUserAvatar, onTranslate, onCorrect }) => {
+  const [showActions, setShowActions] = React.useState(false);
+
+  return (
+    <div className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+      {!isOwnMessage && <img src={otherUserAvatar} className="w-6 h-6 rounded-full self-end" alt="" />}
+      <div
+        className={`max-w-[80%] sm:max-w-md rounded-2xl overflow-hidden shadow-sm group relative ${
+          isOwnMessage
+            ? 'bg-green-500 text-gray-800 dark:text-gray-100 rounded-br-lg'
+            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-lg'
+        }`}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
+      >
+        {message.media && (
+          message.media.type === 'image'
+            ? <img src={message.media.url} alt="chat media" className="w-full h-auto" />
+            : <div className="relative">
+                <video poster={message.media.url} className="w-full h-auto bg-black" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <PlayIcon />
+                  </div>
+                </div>
+              </div>
+        )}
+        {message.text && (
+          <div className="px-3 py-2">
+            <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+            {message.translation && (
+              <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                <p className="text-xs text-gray-600 dark:text-gray-400 italic">{message.translation}</p>
+              </div>
+            )}
+            {message.isTranslating && (
+              <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                <p className="text-xs text-gray-600 dark:text-gray-400 italic animate-pulse">Translating...</p>
+              </div>
+            )}
+            {message.correctionSuggestions && message.correctionSuggestions.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 -mx-3 -mb-2 px-3 py-2">
+                <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 mb-1">💡 Suggestion:</p>
+                {message.correctionSuggestions.map((suggestion, idx) => (
+                  <div key={idx} className="mb-1">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                      <span className="line-through">{suggestion.original}</span> → <span className="font-semibold">{suggestion.corrected}</span>
+                    </p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-500 italic">{suggestion.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        {showActions && message.text && (
+          <div className={`absolute ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} top-1/2 -translate-y-1/2 flex gap-1 px-2`}>
+            <button
+              onClick={() => onTranslate(message.id)}
+              className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg transition-all"
+              title="Translate"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 8h14M9 8a15 15 0 0 1 0 7m0 0H3m6 0a15 15 0 0 1 0-7m-6 0A15 15 0 0 1 9 8m6 15a15 15 0 0 1 6-15m-6 15a15 15 0 0 0 6-15"/>
+              </svg>
+            </button>
+            {!isOwnMessage && (
+              <button
+                onClick={() => onCorrect(message.id)}
+                className="p-1.5 bg-orange-500 text-white rounded-full hover:bg-orange-600 shadow-lg transition-all"
+                title="Suggest correction"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {isOwnMessage && <img src={currentUserAvatar} className="w-6 h-6 rounded-full self-end" alt="" />}
+    </div>
+  );
+};
+
 const ChatWindow: React.FC<{
   conversation: Conversation;
   onSendMessage: (text: string, media?: {type: 'image' | 'video', url: string}) => void;
   onBack: () => void;
   currentUser: User;
   onViewProfile?: (userId: string) => void;
-}> = ({ conversation, onSendMessage, onBack, currentUser, onViewProfile }) => {
+  onUpdateMessage?: (conversationId: string, messageId: string, updates: Partial<DirectMessage>) => void;
+}> = ({ conversation, onSendMessage, onBack, currentUser, onViewProfile, onUpdateMessage }) => {
   const { t } = useTranslation();
   const [newMessage, setNewMessage] = React.useState('');
   const [mediaToSend, setMediaToSend] = React.useState<{type: 'image' | 'video', url: string} | null>(null);
@@ -246,6 +343,43 @@ const ChatWindow: React.FC<{
     }
   };
 
+  const handleTranslateMessage = async (messageId: string) => {
+    if (!onUpdateMessage) return;
+
+    const message = conversation.messages.find(m => m.id === messageId);
+    if (!message || !message.text) return;
+
+    // Set translating state
+    onUpdateMessage(conversation.id, messageId, { isTranslating: true });
+
+    try {
+      // Get target language (user's native language for incoming messages, or their learning language)
+      const targetLang = currentUser.nativeLanguages?.[0]?.code || 'en';
+      const translation = await translationService.translate(message.text, targetLang);
+      onUpdateMessage(conversation.id, messageId, { translation, isTranslating: false });
+    } catch (error) {
+      console.error('Translation failed:', error);
+      onUpdateMessage(conversation.id, messageId, { isTranslating: false });
+    }
+  };
+
+  const handleCorrectMessage = async (messageId: string) => {
+    if (!onUpdateMessage) return;
+
+    const message = conversation.messages.find(m => m.id === messageId);
+    if (!message || !message.text) return;
+
+    try {
+      const targetLang = currentUser.learningLanguages?.[0]?.code || 'en';
+      const corrections = await translationService.correctText(message.text, targetLang);
+      if (corrections.length > 0) {
+        onUpdateMessage(conversation.id, messageId, { correctionSuggestions: corrections });
+      }
+    } catch (error) {
+      console.error('Correction failed:', error);
+    }
+  };
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim() || mediaToSend) {
@@ -286,31 +420,15 @@ const ChatWindow: React.FC<{
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-4">
           {conversation.messages.map(msg => (
-             <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                {msg.senderId !== currentUser.id && <img src={otherUser.avatar} className="w-6 h-6 rounded-full self-end" alt="" />}
-                <div
-                    className={`max-w-[80%] sm:max-w-md rounded-2xl overflow-hidden shadow-sm ${
-                        msg.senderId === currentUser.id
-                        ? 'bg-green-500 text-gray-800 dark:text-gray-100 rounded-br-lg'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-lg'
-                    }`}
-                >
-                    {msg.media && (
-                        msg.media.type === 'image'
-                        ? <img src={msg.media.url} alt="chat media" className="w-full h-auto" />
-                        : <div className="relative">
-                            <video poster={msg.media.url} className="w-full h-auto bg-black" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                               <div className="w-12 h-12 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                                <PlayIcon />
-                               </div>
-                            </div>
-                        </div>
-                    )}
-                    {msg.text && <p className="text-sm px-3 py-2 whitespace-pre-wrap">{msg.text}</p>}
-                </div>
-                {msg.senderId === currentUser.id && <img src={currentUser.avatar} className="w-6 h-6 rounded-full self-end" alt="" />}
-            </div>
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isOwnMessage={msg.senderId === currentUser.id}
+              otherUserAvatar={otherUser.avatar}
+              currentUserAvatar={currentUser.avatar}
+              onTranslate={handleTranslateMessage}
+              onCorrect={handleCorrectMessage}
+            />
           ))}
         </div>
         <div ref={messagesEndRef} />
@@ -487,6 +605,22 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onNavigateBack, target
   );
   const [selectedConversationId, setSelectedConversationId] = React.useState<string | null>(null);
 
+  const handleUpdateMessage = (conversationId: string, messageId: string, updates: Partial<DirectMessage>) => {
+    setConversations(prev =>
+      prev.map(conv => {
+        if (conv.id === conversationId) {
+          return {
+            ...conv,
+            messages: conv.messages.map(msg =>
+              msg.id === messageId ? { ...msg, ...updates } : msg
+            ),
+          };
+        }
+        return conv;
+      })
+    );
+  };
+
   // 如果有targetUserId，自动选择或创建与该用户的对话
   React.useEffect(() => {
     if (targetUserId) {
@@ -578,6 +712,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onNavigateBack, target
             onBack={() => setSelectedConversationId(null)}
             currentUser={currentUser}
             onViewProfile={onViewProfile}
+            onUpdateMessage={handleUpdateMessage}
           />
         ) : (
           <div className="h-full hidden md:flex items-center justify-center bg-gray-50 dark:bg-gray-900">

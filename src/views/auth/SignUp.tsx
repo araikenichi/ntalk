@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { authService } from '../../../services/authService';
-import { User } from '../../types';
+import { User, LanguageProfile } from '../../types';
 import AuthLayout from './AuthLayout';
 import PasswordStrengthIndicator from '../../../components/PasswordStrengthIndicator';
+import LanguageSelector from '../../../components/LanguageSelector';
 import { EyeIcon, EyeOffIcon, LoadingIcon, CameraIcon } from '../../../components/Icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -23,6 +24,8 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUpSuccess, onSwitchToLogin }) => 
     avatar: `https://picsum.photos/seed/newuser${Date.now()}/100/100`,
     bio: '',
   });
+  const [nativeLanguages, setNativeLanguages] = useState<LanguageProfile[]>([]);
+  const [learningLanguages, setLearningLanguages] = useState<LanguageProfile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -55,11 +58,23 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUpSuccess, onSwitchToLogin }) => 
       setError(t('errorPasswordsDoNotMatch'));
       return;
     }
+    if (nativeLanguages.length === 0) {
+      setError('Please select at least one native language.');
+      return;
+    }
+    if (learningLanguages.length === 0) {
+      setError('Please select at least one language you want to learn.');
+      return;
+    }
     setError(null);
     setIsLoading(true);
     try {
       const { confirmPassword, ...signUpData } = formData;
-      const newUser = await authService.signUp(signUpData);
+      const newUser = await authService.signUp({
+        ...signUpData,
+        nativeLanguages,
+        learningLanguages,
+      });
       localStorage.setItem('loggedIn', 'true');
       localStorage.setItem('user', JSON.stringify(newUser));
       onSignUpSuccess(newUser);
@@ -101,6 +116,28 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUpSuccess, onSwitchToLogin }) => 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('bioLabel')}</label>
           <textarea name="bio" onChange={handleChange} className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white" rows={2}/>
+        </div>
+
+        {/* Language Selection */}
+        <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <LanguageSelector
+            selectedLanguages={nativeLanguages}
+            onChange={setNativeLanguages}
+            title="Native Language(s)"
+            subtitle="What language(s) do you speak fluently?"
+            maxSelection={3}
+          />
+        </div>
+
+        <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+          <LanguageSelector
+            selectedLanguages={learningLanguages}
+            onChange={setLearningLanguages}
+            title="Learning Language(s)"
+            subtitle="What language(s) do you want to practice?"
+            showLevel={true}
+            maxSelection={5}
+          />
         </div>
 
         <div>

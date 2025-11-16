@@ -60,6 +60,9 @@ export const authService = {
                     followingCount: 0,
                     followerCount: 0,
                     postCount: 0,
+                    nativeLanguages: userData.nativeLanguages || [],
+                    learningLanguages: userData.learningLanguages || [],
+                    country: '',
                 };
                 
                 users[newUser.email] = { ...newUser, password: userData.password };

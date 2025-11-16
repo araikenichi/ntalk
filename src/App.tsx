@@ -278,6 +278,9 @@ const mockUser = (): User => ({
   followingCount: 0,
   followerCount: 0,
   postCount: 0,
+  nativeLanguages: [{ code: 'zh', name: '中文', level: 'native' }],
+  learningLanguages: [{ code: 'en', name: 'English', level: 'intermediate' }],
+  country: 'China',
 });
 
 const App: React.FC = () => {

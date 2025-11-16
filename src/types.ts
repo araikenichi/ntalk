@@ -2,6 +2,12 @@
 export type ActiveView = 'feed' | 'network' | 'messages' | 'search' | 'profile' | 'live-broadcaster' | 'me';
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
+export interface LanguageProfile {
+  code: string; // ISO 639-1 language code (e.g., 'en', 'zh', 'ja', 'ko', 'es')
+  name: string; // Language name (e.g., 'English', '中文', '日本語')
+  level?: 'native' | 'fluent' | 'advanced' | 'intermediate' | 'beginner';
+}
+
 export interface User {
   id: string;
   name: string;
@@ -17,6 +23,10 @@ export interface User {
   followingCount: number;
   followerCount: number;
   postCount: number;
+  // Language learning fields
+  nativeLanguages: LanguageProfile[];
+  learningLanguages: LanguageProfile[];
+  country?: string;
 }
 
 export interface SignUpData {
@@ -26,6 +36,8 @@ export interface SignUpData {
   avatar: string;
   bio: string;
   password: string;
+  nativeLanguages: LanguageProfile[];
+  learningLanguages: LanguageProfile[];
 }
 
 export enum PostType {
@@ -71,6 +83,13 @@ export interface DirectMessage {
   text: string;
   timestamp: number;
   media?: Media;
+  translation?: string;
+  isTranslating?: boolean;
+  correctionSuggestions?: {
+    original: string;
+    corrected: string;
+    explanation: string;
+  }[];
 }
 
 export interface Conversation {

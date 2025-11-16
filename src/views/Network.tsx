@@ -40,22 +40,55 @@ const UserCard: React.FC<{
     isFollowed: boolean;
     onFollowToggle: (userId: string) => void;
     onViewProfile: (userId: string) => void;
-}> = ({ user, isFollowed, onFollowToggle, onViewProfile }) => {
+    matchScore?: number;
+}> = ({ user, isFollowed, onFollowToggle, onViewProfile, matchScore }) => {
     const { t } = useTranslation();
     const [isAnimating, setIsAnimating] = useState(false);
     const [isMessageAnimating, setIsMessageAnimating] = useState(false);
+
+    const getFlagEmoji = (langCode: string): string => {
+      const flagMap: { [key: string]: string } = {
+        en: '🇬🇧', zh: '🇨🇳', ja: '🇯🇵', ko: '🇰🇷', es: '🇪🇸',
+        fr: '🇫🇷', de: '🇩🇪', it: '🇮🇹', pt: '🇵🇹', ru: '🇷🇺',
+        ar: '🇸🇦', hi: '🇮🇳', th: '🇹🇭', vi: '🇻🇳', id: '🇮🇩',
+        tr: '🇹🇷', pl: '🇵🇱', nl: '🇳🇱', sv: '🇸🇪', no: '🇳🇴',
+      };
+      return flagMap[langCode] || '🌐';
+    };
+
     return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center text-center transition-transform hover:scale-105">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center text-center transition-transform hover:scale-105 relative">
+        {matchScore && matchScore > 80 && (
+          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+            <SparklesIcon className="w-3 h-3" />
+            {matchScore}%
+          </div>
+        )}
         <button onClick={() => onViewProfile(user.id)} className="w-20 h-20 rounded-full overflow-hidden">
           <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
         </button>
         <h3 className="font-bold mt-3 text-gray-900 dark:text-gray-100">{user.name}</h3>
         <p className="text-xs text-gray-500 dark:text-gray-400">@{user.handle}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{user.jobTitle}</p>
-        <div className="mt-2 flex flex-wrap justify-center gap-1">
-            {user.tags.slice(0, 2).map(tag => (
-                <span key={tag} className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded-full">{tag}</span>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{user.location || user.country}</p>
+
+        {/* Language Info */}
+        <div className="mt-2 w-full space-y-1">
+          <div className="flex items-center justify-center gap-1 flex-wrap">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Native:</span>
+            {user.nativeLanguages?.map(lang => (
+              <span key={lang.code} className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                {getFlagEmoji(lang.code)} {lang.name}
+              </span>
             ))}
+          </div>
+          <div className="flex items-center justify-center gap-1 flex-wrap">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Learning:</span>
+            {user.learningLanguages?.map(lang => (
+              <span key={lang.code} className="text-xs bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 px-2 py-0.5 rounded-full">
+                {getFlagEmoji(lang.code)} {lang.name}
+              </span>
+            ))}
+          </div>
         </div>
         <div className="mt-4 flex space-x-2 w-full">
             {isFollowed ? (
@@ -178,10 +211,41 @@ const OpportunityCard: React.FC<{ opportunity: Opportunity }> = ({ opportunity }
 
 const Network: React.FC<NetworkProps> = ({ currentUser, currentUserId, followedUserIds, onFollowToggle, onViewProfile }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('communities');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('connections');
   const [communitySort, setCommunitySort] = useState<CommunitySort>('recommended');
 
-  const recommendedUsers = Object.values(users).filter(u => u.id !== currentUserId && !followedUserIds.includes(u.id));
+  // Language-based matching algorithm
+  const calculateLanguageMatch = (user: User): number => {
+    let score = 0;
+
+    // Perfect match: user's native language is what I'm learning, and vice versa
+    const myNativeCodes = currentUser.nativeLanguages?.map(l => l.code) || [];
+    const myLearningCodes = currentUser.learningLanguages?.map(l => l.code) || [];
+    const theirNativeCodes = user.nativeLanguages?.map(l => l.code) || [];
+    const theirLearningCodes = user.learningLanguages?.map(l => l.code) || [];
+
+    // They speak natively what I'm learning (high value)
+    const theyCanTeachMe = myLearningCodes.some(code => theirNativeCodes.includes(code));
+    if (theyCanTeachMe) score += 50;
+
+    // I speak natively what they're learning (high value)
+    const iCanTeachThem = myNativeCodes.some(code => theirLearningCodes.includes(code));
+    if (iCanTeachThem) score += 50;
+
+    // Both learning same language (medium value)
+    const commonLearning = myLearningCodes.filter(code => theirLearningCodes.includes(code));
+    score += commonLearning.length * 10;
+
+    return Math.min(score, 100);
+  };
+
+  const recommendedUsers = Object.values(users)
+    .filter(u => u.id !== currentUserId && !followedUserIds.includes(u.id))
+    .map(user => ({
+      ...user,
+      matchScore: calculateLanguageMatch(user)
+    }))
+    .sort((a, b) => b.matchScore - a.matchScore);
 
   const sortedCommunities = useMemo(() => {
     let communities = [...mockCommunities];
@@ -218,15 +282,44 @@ const Network: React.FC<NetworkProps> = ({ currentUser, currentUserId, followedU
       <div className="p-4">
         {activeTab === 'connections' && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{t('aiRecommendations')}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {recommendedUsers.filter(u => u.matchScore > 50).length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center">
+                  <SparklesIcon className="w-5 h-5 text-blue-500 mr-2" />
+                  Perfect Language Exchange Matches
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  These users speak what you're learning and want to learn what you speak!
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recommendedUsers
+                    .filter(u => u.matchScore > 50)
+                    .map(user => (
+                      <UserCard
+                        key={user.id}
+                        user={user}
+                        isFollowed={followedUserIds.includes(user.id)}
+                        onFollowToggle={onFollowToggle}
+                        onViewProfile={onViewProfile}
+                        matchScore={user.matchScore}
+                      />
+                    ))
+                  }
+                </div>
+                <hr className="my-6 border-gray-300 dark:border-gray-700"/>
+              </div>
+            )}
+
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">All Language Partners</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recommendedUsers.map(user => (
-                <UserCard 
-                    key={user.id} 
-                    user={user} 
-                    isFollowed={followedUserIds.includes(user.id)} 
+                <UserCard
+                    key={user.id}
+                    user={user}
+                    isFollowed={followedUserIds.includes(user.id)}
                     onFollowToggle={onFollowToggle}
                     onViewProfile={onViewProfile}
+                    matchScore={user.matchScore}
                 />
               ))}
             </div>
