@@ -33,10 +33,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate, onShowPos
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 flex justify-around z-50">
       <NavItem label="Home" icon={<HomeIcon />} isActive={activeView === 'feed'} onClick={() => onNavigate('feed')} iconSize="w-5 h-5" />
       <NavItem label="Network" icon={<GroupIcon />} isActive={activeView === 'network'} onClick={() => onNavigate('network')} iconSize="w-5 h-5" />
-      <NavItem label="Post" icon={<PlusCircleIcon />} isActive={false} onClick={() => {
-        console.log('Post button clicked!');
-        onShowPostCreator?.();
-      }} iconSize="w-7 h-7" />
+      <NavItem label="Post" icon={<PlusCircleIcon />} isActive={false} onClick={() => onShowPostCreator?.()} iconSize="w-7 h-7" />
       <NavItem label="Messages" icon={<MessagesIcon />} isActive={activeView === 'messages'} onClick={() => onNavigate('messages')} iconSize="w-5 h-5" />
       <NavItem label="Me" icon={<UserIcon />} isActive={activeView === 'me'} onClick={() => onNavigate('me')} iconSize="w-5 h-5" />
     </div>
